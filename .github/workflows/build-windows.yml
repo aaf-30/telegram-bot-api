@@ -18,7 +18,7 @@ jobs:
 
       # Langkah 2: Setup Vcpkg (C++ Package Manager)
       - name: Setup vcpkg
-        uses: microsoft/vcpkg-action@v5
+        uses: johnwason/vcpkg-action@v7
         with:
           # Kita simpan cache dependency agar build selanjutnya lebih cepat
           vcpkg-cache-key: windows-latest
