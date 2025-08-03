@@ -1,0 +1,84 @@
+```yaml
+# Nama workflow yang akan tampil di tab Actions
+name: Build Windows Telegram Bot API
+
+# Pemicu workflow
+on:
+  # Memungkinkan kita menjalankan workflow ini secara manual dari tab Actions
+  workflow_dispatch:
+    inputs:
+      # Opsi untuk menyertakan versi di nama file, contoh: v1.2.3
+      version_tag:
+        description: 'Tag versi (cth: v1.0.0)'
+        required: false
+        default: 'latest'
+
+jobs:
+  build-windows:
+    # Menggunakan OS Windows versi terbaru yang disediakan GitHub
+    runs-on: windows-latest
+
+    steps:
+      # Langkah 1: Checkout kode dari repository Anda
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Ambil semua history, dibutuhkan untuk mendapatkan versi git
+          fetch-depth: 0
+
+      # Langkah 2: Setup Vcpkg (C++ Package Manager)
+      - name: Setup vcpkg
+        uses: microsoft/vcpkg-action@v5
+        with:
+          # Kita simpan cache dependency agar build selanjutnya lebih cepat
+          vcpkg-cache-key: windows-latest
+          # Lokasi vcpkg
+          vcpkg-directory: ${{ runner.workspace }}/vcpkg
+
+      # Langkah 3: Install dependency yang dibutuhkan menggunakan vcpkg
+      - name: Install Dependencies
+        run: |
+          vcpkg install gperf openssl:x64-windows zlib:x64-windows
+
+      # Langkah 4: Buat direktori untuk build
+      - name: Create Build Directory
+        run: mkdir build
+
+      # Langkah 5: Konfigurasi proyek menggunakan CMake
+      - name: Configure CMake
+        shell: bash
+        # Jalankan dari dalam direktori 'build'
+        working-directory: ./build
+        run: |
+          cmake .. -A x64 -DCMAKE_TOOLCHAIN_FILE=${{ runner.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release
+
+      # Langkah 6: Kompilasi proyek
+      - name: Build Project with CMake
+        shell: bash
+        working-directory: ./build
+        run: |
+          cmake --build . --config Release -- -m
+
+      # Langkah 7: Siapkan artifact untuk diunggah
+      - name: Prepare Artifact
+        run: |
+          # Dapatkan versi dari tag git terbaru
+          $GIT_VERSION = git describe --tags --abbrev=0
+          # Atau gunakan input manual jika ada
+          $VERSION = "${{ github.event.inputs.version_tag || $GIT_VERSION }}"
+          # Buat folder untuk menampung hasil build
+          New-Item -ItemType Directory -Force -Path "release"
+          # Copy file .exe dan .pdb (untuk debugging) ke folder release
+          Copy-Item "build/Release/telegram-bot-api.exe" -Destination "release/telegram-bot-api-${VERSION}-windows.exe"
+          Copy-Item "build/Release/telegram-bot-api.pdb" -Destination "release/"
+        shell: pwsh
+
+      # Langkah 8: Unggah hasil build (artifact)
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          # Nama artifact yang akan muncul di halaman download
+          name: telegram-bot-api-windows
+          # Path ke folder yang akan diunggah
+          path: ./release/
+```
