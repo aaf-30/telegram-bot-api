@@ -1,16 +1,7 @@
-# Nama workflow yang akan tampil di tab Actions
 name: Build Windows Telegram Bot API
 
-# Pemicu workflow
 on:
-  # Memungkinkan kita menjalankan workflow ini secara manual dari tab Actions
   workflow_dispatch:
-    inputs:
-      # Opsi untuk menyertakan versi di nama file, contoh: v1.2.3
-      version_tag:
-        description: 'Tag versi (cth: v1.0.0)'
-        required: false
-        default: 'latest'
 
 jobs:
   build-windows:
@@ -64,7 +55,7 @@ jobs:
           # Dapatkan versi dari tag git terbaru
           $GIT_VERSION = git describe --tags --abbrev=0
           # Atau gunakan input manual jika ada
-          $VERSION = "${{ github.event.inputs.version_tag || $GIT_VERSION }}"
+          $VERSION = "${{ github.event.inputs.version_tag || '1.0.0' }}"
           # Buat folder untuk menampung hasil build
           New-Item -ItemType Directory -Force -Path "release"
           # Copy file .exe dan .pdb (untuk debugging) ke folder release
